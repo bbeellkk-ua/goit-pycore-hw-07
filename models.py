@@ -4,8 +4,6 @@ from datetime import datetime, timedelta
 
 date_format = '%d.%m.%Y'
 
-class BotError(Exception):
-    pass
 
 class Field:
     def __init__(self, value):
@@ -22,7 +20,7 @@ class Name(Field):
 class Phone(Field):
     def __init__(self, value):
         if not re.search(r'^\d{10}$', value):
-            raise BotError('Number should contain 10 digits')
+            raise ValueError('Number should contain 10 digits')
         super().__init__(value)
 
 
@@ -31,22 +29,39 @@ class Birthday(Field):
         try:
             super().__init__(datetime.strptime(value, date_format))
         except ValueError:
-            raise BotError('Invalid date format. Use DD.MM.YYYY')
+            raise ValueError('Invalid date format. Use DD.MM.YYYY')
 
     def __str__(self):
-        return self.value.strftime(date_format) if self.value else ''
+        return self.value.strftime(date_format)
+
 
 class Record:
     def __init__(self, name):
         self.name = Name(name)
-        self.phone = None
+        self.phones = []
         self.birthday = None
 
-    def set_phone(self, phone: str) -> None:
-        self.phone = Phone(phone)
+    def add_phone(self, phone: str) -> None:
+        self.phones.append(Phone(phone))
 
-    def get_phone(self) -> str | None:
-        return self.phone.value
+    def remove_phone(self, phone: str) -> None:
+        for i, p in enumerate(self.phones):
+            if p.value == phone:
+                self.phones.pop(i)
+
+    def find_phone(self, phone: str) -> Phone | None:
+        for p in self.phones:
+            if p.value == phone:
+                return p
+
+    def edit_phone(self, phone: str, new_phone: str) -> None:
+        index = None
+        for i, p in enumerate(self.phones):
+            if p.value == phone:
+                self.phones[i] = Phone(new_phone)
+                index = i
+        if index is None:
+            raise ValueError('Record does not have such number')
 
     def set_birthday(self, date: str) -> None:
         self.birthday = Birthday(date)
@@ -55,8 +70,11 @@ class Record:
         return self.birthday
 
     def __str__(self):
-        return f'Contact name: {self.name.value}, \
-            phones: {'; '.join(p.value for p in self.phones)}'
+        return " ".join([
+            f"Contact name: '{self.name.value}',",
+            f"phones: '{'; '.join(p.value for p in self.phones)}',",
+            f"birthday: '{self.birthday}'"
+        ])
 
 
 class AddressBook(UserDict):

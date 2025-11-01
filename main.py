@@ -1,4 +1,4 @@
-from models import AddressBook, Record, BotError
+from models import AddressBook, Record
 
 HELP = f"""
 add [ім'я] [телефон]: Додати або новий контакт з іменем та телефонним номером, або телефонний номер к контакту який вже існує.
@@ -12,14 +12,19 @@ hello: Отримати вітання від бота.
 close або exit: Закрити програму.
 """
 
+NOT_EXIST = "Contact does not exist, try to add it."
+
 def input_error(func):
     def inner(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except (ValueError, KeyError, IndexError):
-            return f"Enter the argument for the command:\n{HELP}"
-        except BotError as e:
-            return e
+        except (ValueError, KeyError, IndexError) as e:
+            # Return our custom errors
+            return e if str(e) in [
+                'Number should contain 10 digits',
+                'Invalid date format. Use DD.MM.YYYY',
+                'Record does not have such number'
+            ] else f"Enter the argument for the command:\n{HELP}"
 
     return inner
 
@@ -39,18 +44,18 @@ def add_contact(args, book):
     if rec is None:
         rec = Record(name)
         book.add_record(rec)
-    rec.set_phone(phone)
+    rec.add_phone(phone)
     return "Contact added."
 
 
 @input_error
 def change_contact(args, book):
-    name, phone = args
+    name, old_phone, new_phone = args
     rec = book.find(name)
     if rec:
-        rec.set_phone(phone)
+        rec.edit_phone(old_phone, new_phone)
         return "Contact updated."
-    raise BotError("Contact does not exist, try to add it.")
+    return NOT_EXIST
 
 
 @input_error
@@ -58,12 +63,12 @@ def show_phone(args, book):
     name, = args
     rec = book.find(name)
     if rec:
-        return rec.get_phone()
-    raise BotError("Contact does not exist, try to add it.")
+        return "; ".join([r.value for r in rec.phones])
+    return NOT_EXIST
 
-
+@input_error
 def show_all(book):
-    return "\n".join([f"{name}: {rec.get_phone()}" for name, rec in book.data.items()])
+    return "\n".join([f"{rec}" for rec in book.data.values()])
 
 
 @input_error
@@ -73,7 +78,7 @@ def add_birthday(args, book):
     if rec:
         rec.set_birthday(date)
         return f"Set birthday for {name}."
-    raise BotError("Contact does not exist, try to add it.")
+    return NOT_EXIST
 
 
 @input_error
@@ -84,8 +89,8 @@ def show_birthday(args, book):
         date = rec.get_birthday()
         if date:
             return date
-        raise BotError(f"Birthday for {name} is not set.")
-    raise BotError("Contact does not exist, try to add it.")
+        return f"Birthday for {name} is not set."
+    return NOT_EXIST
 
 
 def birthdays(book):
