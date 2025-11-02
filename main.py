@@ -25,6 +25,8 @@ def input_error(func):
                 'Invalid date format. Use DD.MM.YYYY',
                 'Record does not have such number'
             ] else f"Enter the argument for the command:\n{HELP}"
+        except AttributeError:
+            return NOT_EXIST
 
     return inner
 
@@ -52,19 +54,15 @@ def add_contact(args, book):
 def change_contact(args, book):
     name, old_phone, new_phone = args
     rec = book.find(name)
-    if rec:
-        rec.edit_phone(old_phone, new_phone)
-        return "Contact updated."
-    return NOT_EXIST
+    rec.edit_phone(old_phone, new_phone)
+    return "Contact updated."
 
 
 @input_error
 def show_phone(args, book):
     name, = args
     rec = book.find(name)
-    if rec:
-        return "; ".join([r.value for r in rec.phones])
-    return NOT_EXIST
+    return "; ".join([r.value for r in rec.phones])
 
 @input_error
 def show_all(book):
@@ -75,22 +73,16 @@ def show_all(book):
 def add_birthday(args, book):
     name, date = args
     rec = book.find(name)
-    if rec:
-        rec.set_birthday(date)
-        return f"Set birthday for {name}."
-    return NOT_EXIST
+    rec.set_birthday(date)
+    return f"Set birthday for {name}."
 
 
 @input_error
 def show_birthday(args, book):
     name, = args
     rec = book.find(name)
-    if rec:
-        date = rec.get_birthday()
-        if date:
-            return date
-        return f"Birthday for {name} is not set."
-    return NOT_EXIST
+    date = rec.get_birthday()
+    return date if date else f"Birthday for {name} is not set."
 
 
 def birthdays(book):
